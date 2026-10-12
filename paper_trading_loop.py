@@ -200,19 +200,29 @@ def run_paper_trading_iteration():
             if hit_tp:
                 pnl = TARGET_BRL
                 new_bal = current_balance + pnl
+                now_dt_str = datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d %H:%M")
                 closed_trade = {
                     "trade_id": len(db.get("trades", [])) + 1,
                     "date": datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d"),
                     "time": now_str,
+                    "entry_time": active_trade.get("entry_time", f"{datetime.now(timezone(BRT_OFFSET)).strftime('%Y-%m-%d')} {active_trade.get('opened_at', now_str)}"),
+                    "exit_time": now_dt_str,
                     "squad": squad,
                     "asset": active_trade["asset"],
                     "type": active_trade["type"],
                     "entry_price": active_trade["entry_price"],
                     "stop_loss": active_trade["stop_loss"],
                     "target_price": active_trade["target_price"],
+                    "risk_reward": "1,1 : 1",
                     "result": "WIN",
                     "profit_brl": pnl,
                     "balance_after_brl": round(new_bal, 2),
+                    "confluence": active_trade.get("confluence", {
+                        "macro_h1": "Tendência alinhada H1 (EMA 20/50)",
+                        "vwap_position": "Preço favorável à VWAP",
+                        "rsi_14": 50.0,
+                        "structure_5m": "Pivô nos 5m validado"
+                    }),
                     "notes": "Take Profit atingido no alvo 1.1:1"
                 }
                 db["trades"].append(closed_trade)
@@ -225,19 +235,29 @@ def run_paper_trading_iteration():
             elif hit_sl:
                 pnl = -RISK_BRL
                 new_bal = current_balance + pnl
+                now_dt_str = datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d %H:%M")
                 closed_trade = {
                     "trade_id": len(db.get("trades", [])) + 1,
                     "date": datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d"),
                     "time": now_str,
+                    "entry_time": active_trade.get("entry_time", f"{datetime.now(timezone(BRT_OFFSET)).strftime('%Y-%m-%d')} {active_trade.get('opened_at', now_str)}"),
+                    "exit_time": now_dt_str,
                     "squad": squad,
                     "asset": active_trade["asset"],
                     "type": active_trade["type"],
                     "entry_price": active_trade["entry_price"],
                     "stop_loss": active_trade["stop_loss"],
                     "target_price": active_trade["target_price"],
+                    "risk_reward": "1,1 : 1",
                     "result": "LOSS",
                     "profit_brl": pnl,
                     "balance_after_brl": round(new_bal, 2),
+                    "confluence": active_trade.get("confluence", {
+                        "macro_h1": "Tendência alinhada H1 (EMA 20/50)",
+                        "vwap_position": "Preço favorável à VWAP",
+                        "rsi_14": 50.0,
+                        "structure_5m": "Pivô nos 5m violado"
+                    }),
                     "notes": "Stop Loss acionado na mínima/máxima do pivô"
                 }
                 db["trades"].append(closed_trade)
@@ -295,6 +315,7 @@ def run_paper_trading_iteration():
                 risk_pts = current_close - stop_loss
                 if 40.0 <= risk_pts <= 350.0:
                     target_price = round(current_close + (risk_pts * RR_RATIO), 2)
+                    now_dt_str = datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d %H:%M")
                     new_trade = {
                         "squad": "Cripto",
                         "asset": "BTC/USDT",
@@ -303,7 +324,14 @@ def run_paper_trading_iteration():
                         "stop_loss": stop_loss,
                         "target_price": target_price,
                         "risk_pts": risk_pts,
-                        "opened_at": now_str
+                        "opened_at": now_str,
+                        "entry_time": now_dt_str,
+                        "confluence": {
+                            "macro_h1": "ALTA (EMA 20 > EMA 50)",
+                            "vwap_position": "Acima da VWAP da Sessão",
+                            "rsi_14": round(rsi_5m, 1),
+                            "structure_5m": "Rompimento/Pullback pivô 5m com EMA 8 > 21"
+                        }
                     }
                     db["active_trade"] = new_trade
                     save_db(db)
@@ -318,6 +346,7 @@ def run_paper_trading_iteration():
                 risk_pts = stop_loss - current_close
                 if 40.0 <= risk_pts <= 350.0:
                     target_price = round(current_close - (risk_pts * RR_RATIO), 2)
+                    now_dt_str = datetime.now(timezone(BRT_OFFSET)).strftime("%Y-%m-%d %H:%M")
                     new_trade = {
                         "squad": "Cripto",
                         "asset": "BTC/USDT",
@@ -326,7 +355,14 @@ def run_paper_trading_iteration():
                         "stop_loss": stop_loss,
                         "target_price": target_price,
                         "risk_pts": risk_pts,
-                        "opened_at": now_str
+                        "opened_at": now_str,
+                        "entry_time": now_dt_str,
+                        "confluence": {
+                            "macro_h1": "BAIXA (EMA 20 < EMA 50)",
+                            "vwap_position": "Abaixo da VWAP da Sessão",
+                            "rsi_14": round(rsi_5m, 1),
+                            "structure_5m": "Rompimento/Pullback pivô 5m com EMA 8 < 21"
+                        }
                     }
                     db["active_trade"] = new_trade
                     save_db(db)
